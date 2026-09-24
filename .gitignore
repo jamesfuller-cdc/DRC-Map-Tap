@@ -1,0 +1,6 @@
+# The preprocessed cache is a required deployment artifact for Connect Cloud.
+# Keep local R history and temporary files out of the repository instead.
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
