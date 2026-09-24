@@ -11,7 +11,7 @@ ui <- fluidPage(
   tags$head(
     tags$title("DRC Daily Map"),
     tags$link(rel = "stylesheet", type = "text/css", href = "app.css"),
-    tags$script(src = "app.js")
+    tags$script(src = "app.js?v=2")
   ),
   div(
     class = "game-shell",
@@ -177,11 +177,6 @@ server <- function(input, output, session) {
     leafletProxy("map") |> clearGroup("current guess") |> clearGroup("revealed target")
   })
 
-  observeEvent(input$share, {
-    req(state$finished)
-    session$sendCustomMessage("copyShareText", list(text = make_share_text(state$guesses, puzzle_date())))
-  })
-
   observeEvent(input$finish_game, {
     req(state$question == 5L, state$submitted, !state$finished)
     state$finished <- TRUE
@@ -197,9 +192,11 @@ server <- function(input, output, session) {
   output$final_result <- renderUI({
     req(state$finished)
     scores <- vapply(state$guesses, function(x) x$score, numeric(1))
+    share_text <- make_share_text(state$guesses, puzzle_date())
     div(class = "result-card final-card", h2(class = "final-score-title", sprintf("Your Score: %d / 500", sum(scores))),
         div(class = "share-box",
-            actionButton("share", "Copy Score to Clipboard", class = "secondary-button"),
+            actionButton("share", "Copy Score to Clipboard", class = "secondary-button",
+                         `data-share-text` = share_text),
             span(id = "copy-status", class = "copy-status")),
         tags$table(class = "score-table",
           tags$thead(tags$tr(tags$th("Guess #"), tags$th("What you needed to find"), tags$th("Distance (km)"), tags$th("Score"))),
