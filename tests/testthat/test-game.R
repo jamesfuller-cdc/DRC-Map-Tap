@@ -48,4 +48,6 @@ testthat::test_that("share text does not expose target names", {
   text <- make_share_text(results, as.Date("2026-09-23"))
   testthat::expect_false(grepl("Secret", text, fixed = TRUE))
   testthat::expect_true(grepl("150/500", text, fixed = TRUE))
+  testthat::expect_true(grepl("DRC Daily Map, Sep 23: 150/500", text, fixed = TRUE))
+  testthat::expect_true(grepl("https://jamesfuller-cdc-drc-map-tap.share.connect.posit.cloud/", text, fixed = TRUE))
 })

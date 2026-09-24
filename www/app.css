@@ -29,4 +29,8 @@ body { background:var(--paper); color:var(--ink); font-family:Inter,system-ui,-a
 .share-box .copy-status { display:block; margin-top:8px; }
 .score-table { border-collapse:collapse; margin-top:18px; width:min(100%,620px); } .score-table th, .score-table td { padding:7px 8px; border-bottom:1px solid #ded7cc; text-align:left; } .score-table th { font-weight:900; }
 .attribution { font-size:.75rem; margin-top:12px; }
+.site-footer { display:flex; align-items:center; justify-content:center; gap:9px; margin-top:18px; color:var(--muted); font-size:.95rem; }
+.site-footer a { color:var(--muted); text-decoration:underline; text-underline-offset:2px; }
+.site-footer a:hover, .site-footer a:focus { color:var(--ink); }
+.footer-separator { color:#aaa295; }
 @media (max-width:700px) { .game-shell { padding:20px 14px 32px; } .quiz-main-row { align-items:stretch; flex-direction:column; gap:8px; } .help-details p { max-width:none; } #map { height:calc(100vh - 390px) !important; min-height:360px; } }

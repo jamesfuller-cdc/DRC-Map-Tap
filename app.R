@@ -37,7 +37,23 @@ ui <- fluidPage(
     uiOutput("question_result"),
     uiOutput("final_result"),
     leafletOutput("map", height = "65vh"),
-    div(class = "attribution", textOutput("imagery_attribution", inline = TRUE))
+    div(class = "attribution", textOutput("imagery_attribution", inline = TRUE)),
+    tags$footer(
+      class = "site-footer",
+      tags$a(
+        href = "https://github.com/jamesfuller-cdc/DRC-Map-Tap",
+        target = "_blank",
+        rel = "noopener noreferrer",
+        "View the code on GitHub"
+      ),
+      tags$span(class = "footer-separator", "·"),
+      tags$a(
+        href = "https://github.com/jamesfuller-cdc/DRC-Map-Tap/issues",
+        target = "_blank",
+        rel = "noopener noreferrer",
+        "Report a bug or request a feature"
+      )
+    )
   )
 )
 

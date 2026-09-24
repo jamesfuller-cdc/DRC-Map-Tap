@@ -156,7 +156,12 @@ reveal_target <- function(proxy, target) {
 
 make_share_text <- function(results, puzzle_date) {
   scores <- vapply(results, function(x) x$score, numeric(1))
-  paste(c(sprintf("DRC Daily Map: %d/500", sum(scores)), paste(scores, collapse = " · ")), collapse = "\n")
+  date_label <- sub("^0", "", format(as.Date(puzzle_date), "%b %d"))
+  paste(c(
+    sprintf("DRC Daily Map, %s: %d/500", date_label, sum(scores)),
+    paste(scores, collapse = " · "),
+    "https://jamesfuller-cdc-drc-map-tap.share.connect.posit.cloud/"
+  ), collapse = "\n")
 }
 
 imagery_attribution <- function() {
