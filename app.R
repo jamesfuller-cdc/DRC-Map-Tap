@@ -17,7 +17,21 @@ ui <- fluidPage(
     class = "game-shell",
     div(
       class = "game-header",
-      h1("DRC Daily Map"),
+      div(
+        class = "header-row",
+        h1("DRC Daily Map"),
+        tags$details(
+          class = "help-details header-help",
+          tags$summary("How to play"),
+          div(
+            class = "help-popover",
+            tags$p("Each day, the game selects one DRC province, and you receive five questions about that province. Question 1 asks you to locate the province; Questions 2 and 3 ask you to locate cities or towns within it; Questions 4 and 5 ask you to locate health zones within it."),
+            tags$p("For each question, click the map to place your marker, then select Submit guess. You can pan and zoom before submitting. The target is revealed after your guess is locked."),
+            tags$p("Each question is worth up to 100 points, for a maximum of 500. The closer your guess, the higher your score; guesses inside polygon targets and exact city guesses receive full credit."),
+            tags$p("The daily puzzle refreshes at 12:01 AM Eastern.")
+          )
+        )
+      ),
       div(class = "date-line", textOutput("puzzle_date", inline = TRUE))
     ),
     div(
@@ -27,11 +41,6 @@ ui <- fluidPage(
         div(class = "question-badge", textOutput("question_label", inline = TRUE)),
         div(class = "target-prompt", uiOutput("target_prompt", inline = TRUE)),
         uiOutput("question_action", inline = TRUE)
-      ),
-      tags$details(
-        class = "help-details",
-        tags$summary("How to play"),
-        tags$p("Click the map to place your marker, then select Submit guess. You can pan and zoom before submitting. The target is revealed after your guess is locked.")
       )
     ),
     uiOutput("question_result"),
@@ -77,7 +86,7 @@ server <- function(input, output, session) {
     }
   })
 
-  output$puzzle_date <- renderText(sprintf("Puzzle for %s · refreshes at 1:00 AM Eastern", format(puzzle_date(), "%B %d, %Y")))
+  output$puzzle_date <- renderText(sprintf("Puzzle for %s", format(puzzle_date(), "%B %d, %Y")))
   output$imagery_attribution <- renderText(imagery_attribution())
 
   output$question_label <- renderText({
@@ -117,10 +126,10 @@ server <- function(input, output, session) {
     } else if (dir.exists("www/tiles")) {
       m <- m |> addTiles(urlTemplate = "tiles/{z}/{x}/{y}.png", options = tileOptions(opacity = 1, noWrap = TRUE), group = "Satellite imagery")
     }
-    m <- m |> addPolygons(data = game_data$drc_border, color = "#F4A261", weight = 3,
+    m <- m |> addPolygons(data = game_data$drc_border, color = map_colors$drc_border, weight = 3,
                           fill = FALSE, group = "DRC border")
     if (!is.null(province_hint)) {
-      m <- m |> addPolygons(data = province_hint, color = "#4CC9F0", weight = 3,
+      m <- m |> addPolygons(data = province_hint, color = map_colors$hint_boundary, weight = 3,
                             fill = FALSE,
                             group = "hint province")
     }
@@ -133,7 +142,7 @@ server <- function(input, output, session) {
         zone_hints <- display_zones[province_matches, ]
       }
       if (!is.null(zone_hints) && nrow(zone_hints)) {
-        m <- m |> addPolygons(data = zone_hints, color = "#FFE600", weight = 1.5,
+        m <- m |> addPolygons(data = zone_hints, color = map_colors$hint_boundary, weight = 1.5,
                               opacity = 1, fill = FALSE,
                               options = pathOptions(pane = "healthZonePane"),
                               group = "health zone hints")
@@ -148,7 +157,7 @@ server <- function(input, output, session) {
     leafletProxy("map") |>
       clearGroup("current guess") |>
       addCircleMarkers(lng = input$map_click$lng, lat = input$map_click$lat,
-                       radius = 8, color = "#ffffff", fillColor = "#e65353", fillOpacity = 1,
+                       radius = 8, color = map_colors$player_guess, fillColor = map_colors$player_guess, fillOpacity = 1,
                        weight = 3, group = "current guess")
     updateActionButton(session, "submit_guess", disabled = FALSE)
   })
@@ -160,9 +169,18 @@ server <- function(input, output, session) {
     state$guesses[[state$question]] <- result
     state$submitted <- TRUE
     updateActionButton(session, "submit_guess", disabled = TRUE)
+    view_geometry <- if (target$type == "province") {
+      game_data$drc_border
+    } else {
+      province <- game_data$provinces[game_data$provinces$name == target$province_name, , drop = FALSE]
+      if (nrow(province)) province else game_data$drc_border
+    }
+    view_bbox <- st_bbox(view_geometry)
     leafletProxy("map") |>
       clearGroup("revealed target") |>
-      reveal_target(target)
+      reveal_target(target) |>
+      fitBounds(lng1 = unname(view_bbox[["xmin"]]), lat1 = unname(view_bbox[["ymin"]]),
+                lng2 = unname(view_bbox[["xmax"]]), lat2 = unname(view_bbox[["ymax"]]))
   })
 
   observeEvent(input$next_question, {

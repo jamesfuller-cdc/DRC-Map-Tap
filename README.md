@@ -35,7 +35,7 @@ The production repository should include `app.R`, `R/`, `www/`, `data/game_data.
 
 In Connect Cloud, choose **Publish → Shiny**, select this GitHub repository and branch, choose `app.R` as the primary file, and enable automatic republishing on push. Connect Cloud requires `manifest.json` in the same directory as `app.R` and supports automatic republishing from the connected GitHub branch.
 
-No scheduled job is required. Each session derives the puzzle from the current calendar date in `America/New_York`, with the daily boundary at 1:00 AM Eastern, and checks for a date change once per minute. An open session resets to the new puzzle after the boundary. The same date always produces the same five targets for every user.
+No scheduled job is required. Each session derives the puzzle from the current calendar date in `America/New_York`, with the daily boundary at 12:01 AM Eastern, and checks for a date change once per minute. An open session resets to the new puzzle after the boundary. The same date always produces the same five targets for every user.
 
 If boundary or city data changes, rebuild the cache locally and republish the app. Set `DRC_REBUILD_DATA=1` only for a deliberate local rebuild; do not use it in the deployed app.
 

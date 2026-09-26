@@ -1,7 +1,8 @@
 daily_puzzle_date <- function(now = Sys.time()) {
   eastern_date <- as.Date(format(now, "%Y-%m-%d", tz = "America/New_York"))
   eastern_hour <- as.integer(format(now, "%H", tz = "America/New_York"))
-  if (eastern_hour < 1L) eastern_date <- eastern_date - 1
+  eastern_minute <- as.integer(format(now, "%M", tz = "America/New_York"))
+  if (eastern_hour == 0L && eastern_minute == 0L) eastern_date <- eastern_date - 1
   eastern_date
 }
 
@@ -17,7 +18,7 @@ normalize_place_key <- function(x) {
 
 focus_province_keys <- normalize_place_key(c(
   "Ituri", "Nord-Kivu", "North Kivu", "Sud-Kivu", "South Kivu",
-  "Tshopo", "Bas-Uele", "Haut-Uele"
+  "Tshopo", "Bas-Uele", "Haut-Uele", "Sud-Ubangi", "South Ubangi"
 ))
 
 scoring_config <- list(
@@ -26,6 +27,13 @@ scoring_config <- list(
   polygon_boundary_score = 90,
   polygon_boundary_transition_km = 1,
   minimum_score = 5
+)
+
+map_colors <- list(
+  drc_border = "#F4A261",
+  hint_boundary = "#4CC9F0",
+  player_guess = "#E65353",
+  correct_answer = "#FF006E"
 )
 
 area_radius_km <- function(area_km2, multiplier = scoring_config$area_radius_multiplier) {
@@ -144,12 +152,12 @@ score_guess <- function(lng, lat, target) {
 reveal_target <- function(proxy, target) {
   if (target$type == "city") {
     addCircleMarkers(proxy, data = st_sf(geometry = st_sfc(target$geometry, crs = 4326)), radius = 10,
-                     color = "#9B5DE5", fillColor = "#9B5DE5", fillOpacity = 0.9, weight = 3,
+                     color = map_colors$correct_answer, fillColor = map_colors$correct_answer, fillOpacity = 0.9, weight = 3,
                      group = "revealed target")
   } else {
     addPolygons(proxy, data = st_sf(geometry = st_sfc(target$geometry, crs = 4326)),
-                color = "#FF006E", weight = 4, opacity = 1,
-                fillColor = "#FF006E", fillOpacity = 0.32,
+                color = map_colors$correct_answer, weight = 4, opacity = 1,
+                fillColor = map_colors$correct_answer, fillOpacity = 0.32,
                 group = "revealed target")
   }
 }
