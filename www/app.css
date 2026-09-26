@@ -27,6 +27,7 @@ body { background:var(--paper); color:var(--ink); font-family:Inter,system-ui,-a
 .primary-button:disabled { opacity:.45; cursor:not-allowed; }
 .result-card { background:#fffaf1; border:1px solid #d7d0c4; border-radius:12px; padding:16px 20px; margin:0 0 14px; border-left:5px solid var(--accent); }
 .result-card h2 { margin:0 0 4px; font-size:1.1rem; } .result-card p { margin:5px 0; }
+.score-comment { color:var(--accent); font-weight:700; font-style:italic; }
 .final-score-title { font-size:1.45rem !important; font-weight:900; }
 .target-reveal { color:var(--accent); font-weight:700; }
 .final-card { border-left-color:var(--gold); }

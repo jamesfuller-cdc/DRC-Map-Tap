@@ -36,6 +36,20 @@ map_colors <- list(
   correct_answer = "#FF006E"
 )
 
+score_comment_paths <- c(
+  file.path("data", "score_comments.csv"),
+  file.path("..", "..", "data", "score_comments.csv")
+)
+score_comment_path <- score_comment_paths[file.exists(score_comment_paths)][[1]]
+score_comment_data <- read.csv(
+  score_comment_path,
+  stringsAsFactors = FALSE,
+  check.names = FALSE
+)
+if (!all(c("category", "message") %in% names(score_comment_data))) {
+  stop("data/score_comments.csv must contain category and message columns")
+}
+
 area_radius_km <- function(area_km2, multiplier = scoring_config$area_radius_multiplier) {
   sqrt(area_km2 / pi) * multiplier
 }
@@ -147,6 +161,13 @@ score_guess <- function(lng, lat, target) {
       (100 - scoring_config$minimum_score) * decay)
   }
   list(score = as.numeric(score), distance_km = distance_km, target_name = target$name, target_display = target_label_text(target), type = target$type)
+}
+
+score_comment <- function(score) {
+  category <- if (score <= 60) "low" else if (score <= 85) "medium" else if (score <= 99) "high" else "perfect"
+  messages <- score_comment_data$message[score_comment_data$category == category]
+  if (!length(messages)) stop(sprintf("No score comments found for category '%s'", category))
+  sample(messages, size = 1L)
 }
 
 reveal_target <- function(proxy, target) {

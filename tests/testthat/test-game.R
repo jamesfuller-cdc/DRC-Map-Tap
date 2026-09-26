@@ -3,6 +3,11 @@ testthat::test_that("daily seed is deterministic", {
   testthat::expect_false(daily_seed(as.Date("2026-09-23")) == daily_seed(as.Date("2026-09-24")))
 })
 
+testthat::test_that("score comment dataset has ten messages per category", {
+  testthat::expect_equal(nrow(score_comment_data), 40)
+  testthat::expect_equal(as.integer(table(score_comment_data$category)), rep(10L, 4))
+})
+
 testthat::test_that("daily puzzle date changes at 12:01 AM Eastern", {
   before <- as.POSIXct("2026-01-15 00:00:00", tz = "America/New_York")
   after <- as.POSIXct("2026-01-15 00:01:00", tz = "America/New_York")

@@ -166,6 +166,7 @@ server <- function(input, output, session) {
     req(state$guess, !state$submitted, !state$finished)
     target <- puzzle()[[state$question]]
     result <- score_guess(state$guess$lng, state$guess$lat, target)
+    result$comment <- score_comment(result$score)
     state$guesses[[state$question]] <- result
     state$submitted <- TRUE
     updateActionButton(session, "submit_guess", disabled = TRUE)
@@ -204,7 +205,8 @@ server <- function(input, output, session) {
     req(state$submitted, !state$finished)
     result <- state$guesses[[state$question]]
     div(class = "result-card", h2(sprintf("%d points", result$score)),
-        p(sprintf("You were %s km away.", format(round(result$distance_km, 1), nsmall = 1))))
+        p(sprintf("You were %s km away.", format(round(result$distance_km, 1), nsmall = 1))),
+        p(class = "score-comment", result$comment))
   })
 
   output$final_result <- renderUI({
