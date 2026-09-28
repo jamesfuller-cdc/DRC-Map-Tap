@@ -8,7 +8,11 @@ daily_puzzle_date <- function(now = Sys.time()) {
 
 daily_seed <- function(puzzle_date) {
   value <- utf8ToInt(format(as.Date(puzzle_date), "%Y-%m-%d"))
-  as.integer(sum(value * seq_along(value)) %% .Machine$integer.max)
+  # Hash the date before seeding R's RNG. A simple weighted character sum
+  # creates avoidable bias because nearby dates produce nearby seeds.
+  hash <- 0
+  for (byte in value) hash <- (hash * 131 + byte) %% (.Machine$integer.max)
+  as.integer(hash)
 }
 
 normalize_place_key <- function(x) {
