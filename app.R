@@ -25,9 +25,9 @@ ui <- fluidPage(
           tags$summary("How to play"),
           div(
             class = "help-popover",
-            tags$p("Each day, the game selects one DRC province, and you receive five questions about that province. Question 1 asks you to locate the province; Questions 2 and 3 ask you to locate cities or towns within it; Questions 4 and 5 ask you to locate health zones within it."),
+            tags$p("Each day, the game selects one DRC province, and you receive six questions about it. Question 1 asks you to locate the country of the DRC; Question 2 asks you to locate the selected province; Questions 3 and 4 ask you to locate cities or towns within it; Questions 5 and 6 ask you to locate health zones within it."),
             tags$p("For each question, click the map to place your marker, then select Submit guess. You can pan and zoom before submitting. The target is revealed after your guess is locked."),
-            tags$p("Each question is worth up to 100 points, for a maximum of 500. The closer your guess, the higher your score; guesses inside polygon targets and exact city guesses receive full credit."),
+            tags$p("Each question is worth up to 100 points, for a maximum of 600. The closer your guess, the higher your score; guesses inside polygon targets and exact city guesses receive full credit."),
             tags$p("The daily puzzle refreshes at 12:01 AM Eastern.")
           )
         )
@@ -70,7 +70,7 @@ server <- function(input, output, session) {
   initial_date <- daily_puzzle_date()
   puzzle_date <- reactiveVal(initial_date)
   puzzle <- reactiveVal(make_daily_puzzle(game_data, initial_date))
-  state <- reactiveValues(question = 1L, guesses = vector("list", 5), guess = NULL, submitted = FALSE, finished = FALSE)
+  state <- reactiveValues(question = 1L, guesses = vector("list", 6), guess = NULL, submitted = FALSE, finished = FALSE)
 
   observe({
     invalidateLater(60000, session)
@@ -79,7 +79,7 @@ server <- function(input, output, session) {
       puzzle_date(current_date)
       puzzle(make_daily_puzzle(game_data, current_date))
       state$question <- 1L
-      state$guesses <- vector("list", 5)
+      state$guesses <- vector("list", 6)
       state$guess <- NULL
       state$submitted <- FALSE
       state$finished <- FALSE
@@ -90,7 +90,7 @@ server <- function(input, output, session) {
   output$imagery_attribution <- renderText(imagery_attribution())
 
   output$question_label <- renderText({
-    if (state$finished) "Complete" else sprintf("Question %d of 5", state$question)
+    if (state$finished) "Complete" else sprintf("Question %d of 6", state$question)
   })
   output$target_prompt <- renderUI({
     if (state$finished) return(HTML("Daily puzzle complete"))
@@ -100,7 +100,7 @@ server <- function(input, output, session) {
 
   output$question_action <- renderUI({
     if (state$finished) return(NULL)
-    if (state$submitted && state$question == 5L) return(actionButton("finish_game", "See total score", class = "secondary-button"))
+    if (state$submitted && state$question == 6L) return(actionButton("finish_game", "See total score", class = "secondary-button"))
     if (state$submitted) return(actionButton("next_question", "Next question", class = "secondary-button"))
     actionButton("submit_guess", "Submit guess", class = "primary-button", disabled = TRUE)
   })
@@ -116,9 +116,12 @@ server <- function(input, output, session) {
       province_hint <- game_data$provinces[game_data$provinces$name == target$province_name, ]
       if (!nrow(province_hint)) province_hint <- NULL
     }
-    view_bbox <- if (!is.null(province_hint)) st_bbox(province_hint) else st_bbox(game_data$drc_border)
-    m <- leaflet(options = leafletOptions(zoomControl = TRUE, doubleClickZoom = FALSE)) |>
+    view_bbox <- if (target$type == "country") africa_map_bbox else if (!is.null(province_hint)) st_bbox(province_hint) else st_bbox(game_data$drc_border)
+    m <- leaflet(options = leafletOptions(zoomControl = TRUE, doubleClickZoom = FALSE,
+                                          maxBoundsViscosity = 1)) |>
       addMapPane("healthZonePane", zIndex = 650) |>
+      setMaxBounds(lng1 = unname(africa_map_bbox[["xmin"]]), lat1 = unname(africa_map_bbox[["ymin"]]),
+                   lng2 = unname(africa_map_bbox[["xmax"]]), lat2 = unname(africa_map_bbox[["ymax"]])) |>
       fitBounds(lng1 = unname(view_bbox[["xmin"]]), lat1 = unname(view_bbox[["ymin"]]),
                 lng2 = unname(view_bbox[["xmax"]]), lat2 = unname(view_bbox[["ymax"]]))
     if (nzchar(tile_url)) {
@@ -126,8 +129,10 @@ server <- function(input, output, session) {
     } else if (dir.exists("www/tiles")) {
       m <- m |> addTiles(urlTemplate = "tiles/{z}/{x}/{y}.png", options = tileOptions(opacity = 1, noWrap = TRUE), group = "Satellite imagery")
     }
-    m <- m |> addPolygons(data = game_data$drc_border, color = map_colors$drc_border, weight = 3,
-                          fill = FALSE, group = "DRC border")
+    if (target$type != "country") {
+      m <- m |> addPolygons(data = game_data$drc_border, color = map_colors$drc_border, weight = 3,
+                            fill = FALSE, group = "DRC border")
+    }
     if (!is.null(province_hint)) {
       m <- m |> addPolygons(data = province_hint, color = map_colors$hint_boundary, weight = 3,
                             fill = FALSE,
@@ -170,13 +175,13 @@ server <- function(input, output, session) {
     state$guesses[[state$question]] <- result
     state$submitted <- TRUE
     updateActionButton(session, "submit_guess", disabled = TRUE)
-    view_geometry <- if (target$type == "province") {
+    view_geometry <- if (target$type %in% c("country", "province")) {
       game_data$drc_border
     } else {
       province <- game_data$provinces[game_data$provinces$name == target$province_name, , drop = FALSE]
       if (nrow(province)) province else game_data$drc_border
     }
-    view_bbox <- st_bbox(view_geometry)
+    view_bbox <- if (target$type == "country") africa_map_bbox else st_bbox(view_geometry)
     leafletProxy("map") |>
       clearGroup("revealed target") |>
       reveal_target(target) |>
@@ -185,7 +190,7 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$next_question, {
-    req(state$submitted, state$question < 5)
+    req(state$submitted, state$question < 6)
     state$question <- state$question + 1L
     state$guess <- NULL
     state$submitted <- FALSE
@@ -197,7 +202,7 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$finish_game, {
-    req(state$question == 5L, state$submitted, !state$finished)
+    req(state$question == 6L, state$submitted, !state$finished)
     state$finished <- TRUE
   })
 
@@ -213,7 +218,7 @@ server <- function(input, output, session) {
     req(state$finished)
     scores <- vapply(state$guesses, function(x) x$score, numeric(1))
     share_text <- make_share_text(state$guesses, puzzle_date())
-    div(class = "result-card final-card", h2(class = "final-score-title", sprintf("Your Score: %d / 500", sum(scores))),
+    div(class = "result-card final-card", h2(class = "final-score-title", sprintf("Your Score: %d / 600", sum(scores))),
         div(class = "share-box",
             actionButton("share", "Copy Score to Clipboard", class = "secondary-button",
                          `data-share-text` = share_text),

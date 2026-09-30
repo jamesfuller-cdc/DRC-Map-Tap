@@ -40,6 +40,19 @@ map_colors <- list(
   correct_answer = "#FF006E"
 )
 
+# Tiles may be globally available, but the game is clipped to this Africa-wide
+# extent. The country score scale is calculated from this same extent below.
+africa_map_bbox <- c(xmin = -20, ymin = -35, xmax = 55, ymax = 38)
+
+africa_extent_radius_km <- function(bbox = africa_map_bbox) {
+  corners <- st_sfc(
+    st_point(c(unname(bbox[["xmin"]]), unname(bbox[["ymin"]]))),
+    st_point(c(unname(bbox[["xmax"]]), unname(bbox[["ymax"]]))),
+    crs = 4326
+  )
+  as.numeric(st_distance(corners[1], corners[2])) / 2000
+}
+
 score_comment_paths <- c(
   file.path("data", "score_comments.csv"),
   file.path("..", "..", "data", "score_comments.csv")
@@ -105,6 +118,14 @@ make_daily_puzzle <- function(game_data, puzzle_date) {
   if (nrow(eligible_zones) < 2) stop("At least two eligible health zones are required in the focus provinces")
   cities <- eligible_cities[sample(seq_len(nrow(eligible_cities)), 2), ]
   zones <- eligible_zones[sample(seq_len(nrow(eligible_zones)), 2), ]
+  country_target <- list(
+    type = "country",
+    name = "Democratic Republic of the Congo",
+    province_name = "",
+    geometry = game_data$drc_border$geometry[[1]],
+    full_radius_km = 0,
+    zero_radius_km = africa_extent_radius_km()
+  )
   province_target <- list(type = "province", name = province$name[[1]], province_name = province$name[[1]], geometry = province$geometry[[1]], full_radius_km = 0, zero_radius_km = drc_zero_radius_km)
   city_targets <- lapply(seq_len(nrow(cities)), function(i) {
     list(type = "city", name = cities$name[[i]], province_name = cities$province_name[[i]], geometry = cities$geometry[[i]], full_radius_km = scoring_config$city_full_radius_km, zero_radius_km = province_zero_radius_km)
@@ -112,11 +133,13 @@ make_daily_puzzle <- function(game_data, puzzle_date) {
   zone_targets <- lapply(seq_len(nrow(zones)), function(i) {
     list(type = "health_zone", name = zones$name[[i]], province_name = zones$province_name[[i]], geometry = zones$geometry[[i]], full_radius_km = 0, zero_radius_km = province_zero_radius_km)
   })
-  c(list(province_target), city_targets, zone_targets)
+  c(list(country_target, province_target), city_targets, zone_targets)
 }
 
 target_label_text <- function(target) {
-  if (target$type == "province") {
+  if (target$type == "country") {
+    "the Democratic Republic of the Congo"
+  } else if (target$type == "province") {
     sprintf("%s Province", target$name)
   } else {
     location_name <- if (target$type == "health_zone") paste0(target$name, " Health Zone") else target$name
@@ -191,7 +214,7 @@ make_share_text <- function(results, puzzle_date) {
   scores <- vapply(results, function(x) x$score, numeric(1))
   date_label <- sub("^0", "", format(as.Date(puzzle_date), "%b %d"))
   paste(c(
-    sprintf("DRC Daily Map, %s: %d/500", date_label, sum(scores)),
+    sprintf("DRC Daily Map, %s: %d/600", date_label, sum(scores)),
     paste(scores, collapse = " · "),
     "https://jamesfuller-cdc-drc-map-tap.share.connect.posit.cloud/"
   ), collapse = "\n")

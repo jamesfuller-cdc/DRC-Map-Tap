@@ -26,16 +26,17 @@ testthat::test_that("daily puzzle keeps every target in one province", {
   game_data <- load_game_data(data_dir = test_data_dir)
   puzzle <- make_daily_puzzle(game_data, as.Date("2026-09-23"))
   province_keys <- vapply(puzzle, function(target) normalize_place_key(target$province_name), character(1))
-  testthat::expect_length(unique(province_keys), 1)
+  testthat::expect_length(unique(province_keys[-1]), 1)
   testthat::expect_identical(vapply(puzzle, `[[`, character(1), "type"),
-                             c("province", "city", "city", "health_zone", "health_zone"))
+                             c("country", "province", "city", "city", "health_zone", "health_zone"))
 })
 
 testthat::test_that("area-scaled distances use DRC scale for question 1 and province scale afterward", {
   game_data <- load_game_data(data_dir = test_data_dir)
   puzzle <- make_daily_puzzle(game_data, as.Date("2026-09-23"))
+  testthat::expect_equal(puzzle[[1]]$zero_radius_km, africa_extent_radius_km())
   testthat::expect_gt(puzzle[[1]]$zero_radius_km, puzzle[[2]]$zero_radius_km)
-  testthat::expect_equal(puzzle[[2]]$zero_radius_km, puzzle[[4]]$zero_radius_km)
+  testthat::expect_equal(puzzle[[3]]$zero_radius_km, puzzle[[5]]$zero_radius_km)
 })
 
 testthat::test_that("polygon boundary scoring is separate from city scoring", {
@@ -56,10 +57,10 @@ testthat::test_that("polygon boundary scoring is separate from city scoring", {
 })
 
 testthat::test_that("share text does not expose target names", {
-  results <- list(list(score = 10, target_name = "Secret Province"), list(score = 20, target_name = "Secret City"), list(score = 30, target_name = "Secret Zone"), list(score = 40, target_name = "Secret Zone 2"), list(score = 50, target_name = "Secret Zone 3"))
+  results <- lapply(seq_len(6), function(i) list(score = i * 10, target_name = paste("Secret", i)))
   text <- make_share_text(results, as.Date("2026-09-23"))
   testthat::expect_false(grepl("Secret", text, fixed = TRUE))
-  testthat::expect_true(grepl("150/500", text, fixed = TRUE))
-  testthat::expect_true(grepl("DRC Daily Map, Sep 23: 150/500", text, fixed = TRUE))
+  testthat::expect_true(grepl("210/600", text, fixed = TRUE))
+  testthat::expect_true(grepl("DRC Daily Map, Sep 23: 210/600", text, fixed = TRUE))
   testthat::expect_true(grepl("https://jamesfuller-cdc-drc-map-tap.share.connect.posit.cloud/", text, fixed = TRUE))
 })
